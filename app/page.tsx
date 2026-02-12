@@ -20,7 +20,16 @@ import useSWR from "swr";
 // NASA API Key - Replace with your own
 const NASA_API_KEY = "bToFMQbJE8hFdeu9q5aWrvL1dlb8foEyjumqHQbR";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`Request failed (${res.status}): ${errorBody || res.statusText}`);
+  }
+
+  return res.json();
+};
 
 export default function SpaceExplorer() {
   const [activeTab, setActiveTab] = useState<"apod" | "mars" | "asteroids" | "earth">("apod");
@@ -277,7 +286,7 @@ export default function SpaceExplorer() {
                     >
                       <div className="relative aspect-square rounded-lg overflow-hidden">
                         <img
-                          src={photo.img_src}
+                          src={photo.img_src?.replace(/^http:\/\//, "https://")}
                           alt={`Mars ${photo.camera.full_name}`}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
