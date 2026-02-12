@@ -81,26 +81,26 @@ nasa-space-explorer/
 └── next.config.js            # Next.js config
 ```
 
-## 🎨 Tech Stack
+ Tech Stack
 
-### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Data Fetching**: SWR (stale-while-revalidate)
-- **HTTP Client**: Axios
+ Frontend
+- Framework: Next.js 14 (App Router)
+- Language: TypeScript
+- Styling: Tailwind CSS
+- Animations: Framer Motion
+- Icons: Lucide React
+- Data Fetching: SWR (stale-while-revalidate)
+- HTTP Client: Axios
 
-### NASA APIs Used
+ NASA APIs Used
 1. **APOD API** - Astronomy Picture of the Day
 2. **Mars Rover Photos API** - Curiosity Rover images
 3. **NeoWs API** - Near-Earth Object Web Service
 4. **EONET API** - Earth Observatory Natural Event Tracker
 
-## 🌟 Key Features in Detail
+ Key Features in Detail
 
-### Astronomy Picture of the Day
+ Astronomy Picture of the Day
 ```typescript
 // Fetches daily astronomy pictures
 GET https://api.nasa.gov/planetary/apod
@@ -109,27 +109,27 @@ Parameters:
 - date: YYYY-MM-DD (optional, defaults to today)
 ```
 
-**What it shows:**
+What it shows:
 - High-resolution space images
 - Professional descriptions
 - Copyright information
 - Media type (image or video)
 - HD download links
 
-### Mars Rover Photos
+ Mars Rover Photos
 ```typescript
 // Fetches latest Curiosity rover photos
 GET https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/latest_photos
 ```
 
-**What it shows:**
+What it shows:
 - 12 latest rover photos
 - Camera information
 - Sol (Mars day) number
 - Earth date
 - Mission statistics
 
-### Near-Earth Objects
+ Near-Earth Objects
 ```typescript
 // Fetches asteroid data
 GET https://api.nasa.gov/neo/rest/v1/feed
@@ -137,14 +137,14 @@ Parameters:
 - start_date & end_date: Today's date
 ```
 
-**What it shows:**
+What it shows:
 - Total asteroids today
 - Potentially hazardous asteroids
 - Size estimates
 - Velocity data
 - Miss distance from Earth
 
-### Earth Events
+ Earth Events
 ```typescript
 // Fetches natural events
 GET https://eonet.gsfc.nasa.gov/api/v3/events
@@ -153,16 +153,16 @@ Parameters:
 - limit: 10
 ```
 
-**What it shows:**
+What it shows:
 - Active natural disasters
 - Event categories
 - Geographic coordinates
 - Event dates
 - Source links
 
-## 🎯 For Your Resume
+ For Your Resume
 
-### Project Description
+ Project Description
 ```
 NASA Space Explorer - Real-Time Space Data Dashboard
 Next.js 14 • TypeScript • Tailwind CSS • NASA APIs
