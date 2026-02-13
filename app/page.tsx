@@ -233,97 +233,78 @@ export default function SpaceExplorer() {
 
         {/* Mars Rovers Section */}
         {activeTab === "mars" && (
-          <motion.div
-            key="mars"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center gap-3">
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold flex items-center gap-3">
               <Rocket className="w-8 h-8 text-red-500" />
-              <h2 className="text-3xl font-bold glow-text">Mars Curiosity Rover</h2>
-            </div>
+              Mars Curiosity Rover
+            </h2>
 
-            {marsData && (
+            {marsLoading && (
+              <div className="glass p-12 rounded-2xl text-center">
+                <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-spin" />
+                <p>Loading photos...</p>
+              </div>
+            )}
+
+            {marsData?.latest_photos && marsData.latest_photos.length > 0 && (
               <>
-                <div className="glass p-6 rounded-2xl">
-                  <div className="grid md:grid-cols-4 gap-4">
-                    <div className="glass p-4 rounded-xl">
-                      <p className="text-sm text-gray-400 mb-1">Latest Photos</p>
-                      <p className="text-2xl font-bold text-purple-400">
-                        {marsData.latest_photos?.length || 0}
-                      </p>
-                    </div>
-                    <div className="glass p-4 rounded-xl">
-                      <p className="text-sm text-gray-400 mb-1">Sol (Mars Day)</p>
-                      <p className="text-2xl font-bold text-pink-400">
-                        {marsData.latest_photos?.[0]?.sol || "N/A"}
-                      </p>
-                    </div>
-                    <div className="glass p-4 rounded-xl">
-                      <p className="text-sm text-gray-400 mb-1">Earth Date</p>
-                      <p className="text-2xl font-bold text-blue-400">
-                        {marsData.latest_photos?.[0]?.earth_date || "N/A"}
-                      </p>
-                    </div>
-                    <div className="glass p-4 rounded-xl">
-                      <p className="text-sm text-gray-400 mb-1">Camera</p>
-                      <p className="text-2xl font-bold text-green-400">
-                        {marsData.latest_photos?.[0]?.camera?.full_name?.split(" ")[0] || "N/A"}
-                      </p>
-                    </div>
+                <div className="glass p-6 rounded-2xl grid md:grid-cols-4 gap-4">
+                  <div className="glass p-4 rounded-xl">
+                    <p className="text-sm text-gray-400">Photos</p>
+                    <p className="text-2xl font-bold text-purple-400">{marsData.latest_photos.length}</p>
+                  </div>
+                  <div className="glass p-4 rounded-xl">
+                    <p className="text-sm text-gray-400">Sol</p>
+                    <p className="text-2xl font-bold text-pink-400">{marsData.latest_photos[0]?.sol}</p>
+                  </div>
+                  <div className="glass p-4 rounded-xl">
+                    <p className="text-sm text-gray-400">Date</p>
+                    <p className="text-xl font-bold text-blue-400">{marsData.latest_photos[0]?.earth_date}</p>
+                  </div>
+                  <div className="glass p-4 rounded-xl">
+                    <p className="text-sm text-gray-400">Rover</p>
+                    <p className="text-2xl font-bold text-green-400">Curiosity</p>
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6">
-                  {marsData.latest_photos?.slice(0, 12).map((photo: any, index: number) => (
-                    <motion.div
-                      key={photo.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="gradient-border glass rounded-xl p-1 overflow-hidden group cursor-pointer"
-                    >
-                      <div className="relative aspect-square rounded-lg overflow-hidden">
+                  {marsData.latest_photos.slice(0, 12).map((photo: any) => (
+                    <div key={photo.id} className="glass rounded-xl p-1 group">
+                      <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-800">
                         <img
-                          src={photo.img_src?.replace(/^http:\/\//, "https://")}
-                          alt={`Mars ${photo.camera.full_name}`}
+                          src={photo.img_src}
+                          alt={photo.camera?.full_name}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect fill="%23374151" width="400" height="400"/><text x="50%" y="50%" text-anchor="middle" fill="%23fff" font-size="14">Image Error</text></svg>';
+                          }}
                         />
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                          <p className="text-sm font-semibold">{photo.camera.full_name}</p>
+                          <p className="text-sm font-semibold">{photo.camera?.full_name}</p>
                           <p className="text-xs text-gray-400">Sol {photo.sol}</p>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </>
             )}
 
-            {marsData?.latest_photos && marsData.latest_photos.length > 0 && (
-  <>
-    <div className="glass p-6 rounded-2xl grid md:grid-cols-4 gap-4">
-      <div className="glass p-4 rounded-xl">
-        <p className="text-sm text-gray-400">Photos</p>
-        <p className="text-2xl font-bold text-purple-400">
-          {marsData.latest_photos.length}
-        </p>
-      </div>
-      {/* ... rest of stats ... */}
-    </div>
+            {marsError && (
+              <div className="glass p-8 rounded-2xl text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <p>Failed to load Mars photos</p>
+                <p className="text-sm text-gray-500">{marsError.message}</p>
+              </div>
+            )}
 
-    <div className="grid md:grid-cols-3 gap-6">
-      {marsData.latest_photos.slice(0, 12).map((photo: any) => (
-        <div key={photo.id} className="glass rounded-xl p-1">
-          <img src={photo.img_src} alt={photo.camera?.full_name} />
-          {/* ... rest of photo display ... */}
-        </div>
-      ))}
-    </div>
-  </>
-)}
-          </motion.div>
+            {marsData && (!marsData.latest_photos || marsData.latest_photos.length === 0) && (
+              <div className="glass p-8 rounded-2xl text-center">
+                <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+                <p>No photos available</p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Asteroids Section */}
