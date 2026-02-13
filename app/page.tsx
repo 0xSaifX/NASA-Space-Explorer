@@ -9,12 +9,11 @@ import {
   Globe,
   Calendar,
   ExternalLink,
-  ChevronRight,
   Sparkles,
   TrendingUp,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
-import Image from "next/image";
 import useSWR from "swr";
 
 // NASA API Key - Replace with your own
