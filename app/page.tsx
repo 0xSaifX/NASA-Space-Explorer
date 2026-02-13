@@ -301,12 +301,28 @@ export default function SpaceExplorer() {
               </>
             )}
 
-            {marsError && (
-              <div className="glass p-8 rounded-2xl text-center">
-                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                <p className="text-gray-400">Failed to load Mars rover photos</p>
-              </div>
-            )}
+            {marsData?.latest_photos && marsData.latest_photos.length > 0 && (
+  <>
+    <div className="glass p-6 rounded-2xl grid md:grid-cols-4 gap-4">
+      <div className="glass p-4 rounded-xl">
+        <p className="text-sm text-gray-400">Photos</p>
+        <p className="text-2xl font-bold text-purple-400">
+          {marsData.latest_photos.length}
+        </p>
+      </div>
+      {/* ... rest of stats ... */}
+    </div>
+
+    <div className="grid md:grid-cols-3 gap-6">
+      {marsData.latest_photos.slice(0, 12).map((photo: any) => (
+        <div key={photo.id} className="glass rounded-xl p-1">
+          <img src={photo.img_src} alt={photo.camera?.full_name} />
+          {/* ... rest of photo display ... */}
+        </div>
+      ))}
+    </div>
+  </>
+)}
           </motion.div>
         )}
 
