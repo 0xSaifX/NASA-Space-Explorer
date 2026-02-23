@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
 import {
   Rocket,
   Camera,
   Atom,
   Globe,
-  Calendar,
   ExternalLink,
-  Sparkles,
-  TrendingUp,
   AlertCircle,
   Loader2,
 } from "lucide-react";
@@ -20,50 +16,61 @@ import useSWR from "swr";
 const NASA_API_KEY = "bToFMQbJE8hFdeu9q5aWrvL1dlb8foEyjumqHQbR";
 
 const fetcher = async (url: string) => {
-  console.log("Fetching:", url);
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`API Error: ${response.status}`);
   }
-  const data = await response.json();
-  console.log("Response data:", data);
-  return data;
+  return response.json();
+};
+
+const swrOptions = {
+  revalidateOnFocus: false,
+  dedupingInterval: 60_000,
 };
 
 export default function SpaceExplorer() {
   const [activeTab, setActiveTab] = useState<"apod" | "mars" | "asteroids" | "earth">("apod");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const today = new Date().toISOString().split("T")[0];
 
   // Fetch APOD
-  const { data: apodData, error: apodError } = useSWR(
-    `https://api.nasa.gov/planetary/apod?api_key=${NASA_API_KEY}&date=${selectedDate}`,
-    fetcher
+  const { data: apodData, error: apodError, isLoading: apodLoading } = useSWR(
+    activeTab === "apod"
+      ? `https://api.nasa.gov/planetary/apod?api_key=${NASA_API_KEY}&date=${selectedDate}`
+      : null,
+    fetcher,
+    swrOptions
   );
 
-  // Fetch Mars Rover Photos - FIXED
-  const { data: marsData, error: marsError, isLoading: marsLoading } = useSWR(
-    `https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/latest_photos?api_key=${NASA_API_KEY}`,
-    fetcher
+  // Fetch EPIC Earth Images via local API route
+  const { data: epicImages, error: epicError, isLoading: epicLoading } = useSWR(
+    activeTab === "mars" ? "/api/epic" : null,
+    fetcher,
+    swrOptions
   );
-
-  // Debug
-  useEffect(() => {
-    if (marsData) console.log("Mars Data:", marsData);
-    if (marsError) console.error("Mars Error:", marsError);
-  }, [marsData, marsError]);
 
   // Fetch Asteroids
-  const today = new Date().toISOString().split("T")[0];
-  const { data: asteroidsData, error: asteroidsError } = useSWR(
-    `https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=${NASA_API_KEY}`,
-    fetcher
+  const { data: asteroidsData } = useSWR(
+    activeTab === "asteroids"
+      ? `https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=${NASA_API_KEY}`
+      : null,
+    fetcher,
+    swrOptions
   );
 
-  // Fetch Earth Events
-  const { data: earthEventsData } = useSWR(
-    `https://eonet.gsfc.nasa.gov/api/v3/events?limit=10&status=open`,
-    fetcher
+  // Fetch Space Weather Alerts (DONKI) via local API route
+  const { data: spaceWeatherAlerts, error: spaceWeatherError, isLoading: spaceWeatherLoading } = useSWR(
+    activeTab === "earth" ? "/api/space-weather" : null,
+    fetcher,
+    {
+      ...swrOptions,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
+    }
   );
+
+  const epicMode = epicImages?.mode ?? "natural";
+  const epicItems = epicImages?.items ?? [];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-space-darker via-space-dark to-space-darker stars-bg">
@@ -98,9 +105,9 @@ export default function SpaceExplorer() {
           <div className="flex gap-2 overflow-x-auto py-4">
             {[
               { id: "apod" as const, label: "Astronomy", icon: Camera },
-              { id: "mars" as const, label: "Mars Rovers", icon: Rocket },
+              { id: "mars" as const, label: "EPIC Earth", icon: Rocket },
               { id: "asteroids" as const, label: "Asteroids", icon: Atom },
-              { id: "earth" as const, label: "Earth Events", icon: Globe },
+              { id: "earth" as const, label: "Space Weather", icon: Globe },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -126,7 +133,7 @@ export default function SpaceExplorer() {
       <main className="relative z-10 container mx-auto px-6 py-12">
         
         {/* APOD */}
-        {activeTab === "apod" && apodData && (
+        {activeTab === "apod" && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-3xl font-bold">Astronomy Picture of the Day</h2>
@@ -138,98 +145,123 @@ export default function SpaceExplorer() {
                 className="glass px-4 py-2 rounded-lg"
               />
             </div>
-            <div className="grid lg:grid-cols-2 gap-8">
-              <div className="glass rounded-2xl p-1">
-                <img src={apodData.url} alt={apodData.title} className="w-full rounded-xl" />
+
+            {apodLoading && (
+              <div className="glass p-12 rounded-2xl text-center">
+                <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-spin" />
+                <p>Loading APOD...</p>
               </div>
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold">{apodData.title}</h3>
-                <p className="text-gray-300">{apodData.explanation}</p>
-                {apodData.hdurl && (
-                  <a
-                    href={apodData.hdurl}
-                    target="_blank"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 rounded-lg"
-                  >
-                    View HD <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
+            )}
+
+            {apodError && (
+              <div className="glass p-8 rounded-2xl text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <p>Failed to load APOD data</p>
+                <p className="text-sm text-gray-500">{apodError.message}</p>
               </div>
-            </div>
+            )}
+
+            {apodData && (
+              <div className="grid lg:grid-cols-2 gap-8 items-stretch">
+                <div className="glass rounded-2xl p-1 h-full">
+                  <img
+                    src={apodData.url}
+                    alt={apodData.title}
+                    className="w-full h-full min-h-[420px] rounded-xl object-cover"
+                  />
+                </div>
+                <div className="glass rounded-2xl p-6 space-y-4 h-full min-h-[420px] overflow-y-auto">
+                  <h3 className="text-2xl font-bold">{apodData.title}</h3>
+                  <p className="text-gray-300">{apodData.explanation}</p>
+                  {apodData.hdurl && (
+                    <a
+                      href={apodData.hdurl}
+                      target="_blank"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 rounded-lg"
+                    >
+                      View HD <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* MARS - FIXED */}
+        {/* EPIC EARTH IMAGERY */}
         {activeTab === "mars" && (
           <div className="space-y-6">
             <h2 className="text-3xl font-bold flex items-center gap-3">
               <Rocket className="w-8 h-8 text-red-500" />
-              Mars Curiosity Rover
+              EPIC Earth Imagery
             </h2>
 
-            {marsLoading && (
+            {epicLoading && (
               <div className="glass p-12 rounded-2xl text-center">
                 <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-spin" />
-                <p>Loading photos...</p>
+                <p>Loading EPIC images...</p>
               </div>
             )}
 
-            {marsData?.latest_photos && marsData.latest_photos.length > 0 && (
+            {epicItems.length > 0 && (
               <>
                 <div className="glass p-6 rounded-2xl grid md:grid-cols-4 gap-4">
                   <div className="glass p-4 rounded-xl">
                     <p className="text-sm text-gray-400">Photos</p>
-                    <p className="text-2xl font-bold text-purple-400">{marsData.latest_photos.length}</p>
+                    <p className="text-2xl font-bold text-purple-400">{epicItems.length}</p>
                   </div>
                   <div className="glass p-4 rounded-xl">
-                    <p className="text-sm text-gray-400">Sol</p>
-                    <p className="text-2xl font-bold text-pink-400">{marsData.latest_photos[0]?.sol}</p>
+                    <p className="text-sm text-gray-400">Latest ID</p>
+                    <p className="text-2xl font-bold text-pink-400">{epicItems[0]?.identifier ?? "-"}</p>
                   </div>
                   <div className="glass p-4 rounded-xl">
                     <p className="text-sm text-gray-400">Date</p>
-                    <p className="text-xl font-bold text-blue-400">{marsData.latest_photos[0]?.earth_date}</p>
+                    <p className="text-xl font-bold text-blue-400">{epicItems[0]?.date?.split(" ")[0] ?? "-"}</p>
                   </div>
                   <div className="glass p-4 rounded-xl">
-                    <p className="text-sm text-gray-400">Rover</p>
-                    <p className="text-2xl font-bold text-green-400">Curiosity</p>
+                    <p className="text-sm text-gray-400">Mode</p>
+                    <p className="text-2xl font-bold text-green-400">{epicMode}</p>
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6">
-                  {marsData.latest_photos.slice(0, 12).map((photo: any) => (
-                    <div key={photo.id} className="glass rounded-xl p-1 group">
+                  {epicItems.slice(0, 12).map((image: any) => {
+                    const imageUrl = image.imageUrl ?? "";
+
+                    return (
+                    <div key={image.identifier} className="glass rounded-xl p-1 group">
                       <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-800">
                         <img
-                          src={photo.img_src}
-                          alt={photo.camera?.full_name}
+                          src={imageUrl}
+                          alt={`EPIC ${image.caption ?? image.identifier}`}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           onError={(e) => {
                             e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect fill="%23374151" width="400" height="400"/><text x="50%" y="50%" text-anchor="middle" fill="%23fff" font-size="14">Image Error</text></svg>';
                           }}
                         />
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                          <p className="text-sm font-semibold">{photo.camera?.full_name}</p>
-                          <p className="text-xs text-gray-400">Sol {photo.sol}</p>
+                          <p className="text-sm font-semibold">{image.identifier}</p>
+                          <p className="text-xs text-gray-400">{image.date?.split(" ")[0]}</p>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </>
             )}
 
-            {marsError && (
+            {epicError && (
               <div className="glass p-8 rounded-2xl text-center">
                 <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                <p>Failed to load Mars photos</p>
-                <p className="text-sm text-gray-500">{marsError.message}</p>
+                <p>Failed to load EPIC images</p>
+                <p className="text-sm text-gray-500">{epicError.message}</p>
               </div>
             )}
 
-            {marsData && (!marsData.latest_photos || marsData.latest_photos.length === 0) && (
+            {epicItems.length === 0 && (
               <div className="glass p-8 rounded-2xl text-center">
                 <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                <p>No photos available</p>
+                <p>No EPIC images available</p>
               </div>
             )}
           </div>
@@ -296,32 +328,60 @@ export default function SpaceExplorer() {
           </div>
         )}
 
-        {/* EARTH EVENTS */}
-        {activeTab === "earth" && earthEventsData && (
+        {/* SPACE WEATHER (DONKI) */}
+        {activeTab === "earth" && (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold">Active Earth Events</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {earthEventsData.events?.slice(0, 10).map((event: any) => (
-                <div key={event.id} className="glass p-6 rounded-xl">
-                  <h3 className="text-lg font-bold mb-2">{event.title}</h3>
-                  <span className="px-2 py-1 bg-purple-500/20 border border-purple-500 rounded text-xs">
-                    {event.categories?.[0]?.title}
-                  </span>
-                  <p className="text-sm text-gray-400 mt-3">
-                    {event.geometry?.[0]?.coordinates?.[1]?.toFixed(2)}°, {event.geometry?.[0]?.coordinates?.[0]?.toFixed(2)}°
-                  </p>
-                  {event.sources?.[0]?.url && (
-                    <a
-                      href={event.sources[0].url}
-                      target="_blank"
-                      className="inline-flex items-center gap-2 text-sm text-purple-400 mt-3"
-                    >
-                      Source <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
+            <h2 className="text-3xl font-bold">Space Weather Notifications</h2>
+
+            {spaceWeatherLoading && (
+              <div className="glass p-12 rounded-2xl text-center">
+                <Loader2 className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-spin" />
+                <p>Loading space weather alerts...</p>
+              </div>
+            )}
+
+            {spaceWeatherError && (
+              <div className="glass p-8 rounded-2xl text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <p>Failed to load space weather alerts</p>
+                <p className="text-sm text-gray-500">{spaceWeatherError.message}</p>
+              </div>
+            )}
+
+            {!spaceWeatherLoading && !spaceWeatherError && spaceWeatherAlerts && spaceWeatherAlerts.length === 0 && (
+              <div className="glass p-8 rounded-2xl text-center">
+                <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+                <p>No recent space weather alerts</p>
+              </div>
+            )}
+
+            {spaceWeatherAlerts && spaceWeatherAlerts.length > 0 && (
+              <div className="grid md:grid-cols-2 gap-6">
+                {spaceWeatherAlerts.slice(0, 10).map((alert: any, idx: number) => {
+                  return (
+                    <div key={`${alert.messageType ?? "alert"}-${idx}`} className="glass p-6 rounded-xl">
+                      <h3 className="text-lg font-bold mb-2">{alert.messageType ?? "Notification"}</h3>
+                      <span className="px-2 py-1 bg-purple-500/20 border border-purple-500 rounded text-xs">
+                        {alert.messageIssueTime?.split("T")[0] ?? "Unknown date"}
+                      </span>
+                      <p className="text-sm text-gray-300 mt-3">
+                        {alert.messageBody ?? "No details provided."}
+                      </p>
+                      {alert.messageURL && (
+                        <a
+                          href={alert.messageURL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-purple-400 mt-3"
+                        >
+                          Source <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>
